@@ -1,0 +1,42 @@
+﻿<Window x:Class="ChainTime.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:ChainTime"
+        xmlns:wpf="clr-namespace:CefSharp.Wpf;assembly=CefSharp.Wpf"        
+        mc:Ignorable="d"        
+        Closing="Window_Closing"
+        KeyUp="Window_KeyUp"
+        Title="MainWindow" Height="450" Width="450" WindowStyle="None" AllowsTransparency="True">
+    <Window.Background>
+        <SolidColorBrush Color="White" Opacity="0"/>
+    </Window.Background>
+    <Grid>
+        <!--<wpf:ChromiumWebBrowser x:Name="Browser" Address="file:///C:/Temp/browsertest.html">
+        </wpf:ChromiumWebBrowser>-->
+        <wpf:ChromiumWebBrowser x:Name="Browser">
+        </wpf:ChromiumWebBrowser>
+        <Button x:Name="Minus" Cursor="Hand" Background="#22000000" BorderThickness="0" BorderBrush="Transparent" HorizontalAlignment="Left" Height="40" Margin="20,0,0,0" VerticalAlignment="Top" Width="40" PreviewMouseDown="Minus_Click">
+            <ContentControl>
+                <Image Width="35" Height="35" Source="minus-solid.png" />
+            </ContentControl>
+        </Button>
+        <Button x:Name="Plus" Cursor="Hand" Background="#22000000" BorderThickness="0" BorderBrush="Transparent" HorizontalAlignment="Left" Height="40" Margin="60,0,0,0" VerticalAlignment="Top" Width="40" PreviewMouseDown="Plus_Click">
+            <ContentControl>
+                <Image Width="35" Height="35" Source="plus-solid.png" />
+            </ContentControl>
+        </Button>
+        <Button x:Name="Config" Cursor="Hand" Background="#22000000" BorderThickness="0" BorderBrush="Transparent" HorizontalAlignment="Right" Height="40" Margin="0,0,60,0" VerticalAlignment="Top" Width="40" PreviewMouseDown="Config_Click">
+            <ContentControl>
+                <Image Width="35" Height="35" Source="gear-solid.png" />
+            </ContentControl>
+        </Button>
+        <Button x:Name="Quit" Cursor="Hand" Background="#22000000" BorderThickness="0" BorderBrush="Transparent" HorizontalAlignment="Right" Height="40" Margin="0,0,20,0" VerticalAlignment="Top" Width="40" PreviewMouseDown="Quit_PreviewMouseDown">
+            <ContentControl>
+                <Image Width="35" Height="35" Source="quit.png" />
+            </ContentControl>
+        </Button>
+        <Canvas Name="FakeImage"></Canvas>
+    </Grid>
+</Window>
