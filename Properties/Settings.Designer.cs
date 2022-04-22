@@ -8,7 +8,7 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
-namespace ChainTime.Properties {
+namespace BlockClocksWindows.Properties {
     
     
     [global::System.Runtime.CompilerServices.CompilerGeneratedAttribute()]
@@ -128,6 +128,18 @@ namespace ChainTime.Properties {
             }
             set {
                 this["UTCDetails"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("False")]
+        public bool BackgroundStyle {
+            get {
+                return ((bool)(this["BackgroundStyle"]));
+            }
+            set {
+                this["BackgroundStyle"] = value;
             }
         }
     }

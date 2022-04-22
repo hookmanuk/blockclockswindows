@@ -22,6 +22,7 @@
     <None Remove="plus-solid.png" />
     <None Remove="plus-solid.svg" />
     <None Remove="quit.png" />
+    <None Remove="refresh.png" />
   </ItemGroup>
 
   <ItemGroup>
@@ -41,6 +42,7 @@
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </Resource>
     <Resource Include="quit.png" />
+    <Resource Include="refresh.png" />
   </ItemGroup>
 
   <ItemGroup>

@@ -1,15 +1,18 @@
-﻿using CefSharp;
+﻿using BlockClocksWindows;
+using CefSharp;
 using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Text;
 using System.Timers;
 using System.Windows;
 using System.Windows.Input;
+using System.Windows.Interop;
 using System.Windows.Media;
 
-namespace ChainTime
+namespace BlockClocksWindows
 {
     /// <summary>
     /// Interaction logic for MainWindow.xaml
@@ -25,7 +28,9 @@ namespace ChainTime
         public List<clockassetcontents> Clocks { get; set; } = new List<clockassetcontents>();  
         public string LinkedAddress { get; set; }
         public int ClockOpacity { get; set; }
-        public bool ConfigShown { get; set; }        
+        public bool ConfigShown { get; set; }
+        public BlockClocksWindows.WindowSinker WS { get; set; }
+
 
         public MainWindow()
         {
@@ -68,8 +73,30 @@ namespace ChainTime
             }
 
             PositionClock();
+            
+            //WS = new BlockClocksWindows.WindowSinker(this);        
+            
+            this.SourceInitialized += new EventHandler(OnSourceInitialized); 
 
+            if (Properties.Settings.Default.BackgroundStyle)
+            {
+                SetToBackground();
+            }
+        }
 
+        public void SetToBackground()
+        {
+            WS = new BlockClocksWindows.WindowSinker(this);
+        }
+
+        public void SetToForeground()
+        {
+            if (WS != null)
+            {
+                WS.DisableSinker();
+                WS.Dispose();
+            }
+            this.Focus();
         }
 
         private void Window_KeyUp(object sender, KeyEventArgs e)
@@ -88,7 +115,10 @@ namespace ChainTime
 
         private void PositionClock()
         {
-            if (Properties.Settings.Default.Height == 0)
+            if (Properties.Settings.Default.Top <= 0 ||
+                Properties.Settings.Default.Left <= 0 ||
+                Properties.Settings.Default.Height <= 0 ||
+                Properties.Settings.Default.Width <= 0)
             {
                 Properties.Settings.Default.Left = System.Windows.SystemParameters.PrimaryScreenHeight / 4;
                 Properties.Settings.Default.Top = System.Windows.SystemParameters.PrimaryScreenHeight / 4;
@@ -177,8 +207,8 @@ namespace ChainTime
         private void Window_Deactivated(object sender, EventArgs e)
         {
             // The Window was deactivated 
-            Topmost = false; // set topmost false first
-            Topmost = true; // then set topmost true again.
+            //Topmost = false; // set topmost false first
+            //Topmost = true; // then set topmost true again.
         }
 
         private void Window_MouseDown(object sender, MouseButtonEventArgs e)
@@ -198,7 +228,7 @@ namespace ChainTime
             timer.AutoReset = true;
             timer.Elapsed += Timer_Elapsed_Minus;
             timer.Start();
-            Timer_Elapsed_Minus(sender, null);
+            Timer_Elapsed_Minus(sender, null);            
         }
 
         private void Timer_Elapsed_Minus(object sender, ElapsedEventArgs e)
@@ -231,15 +261,16 @@ namespace ChainTime
         }
 
         private void Config_Click(object sender, MouseButtonEventArgs e)
-        {
+        {            
             ShowConfig();
         }
 
         private void ShowConfig()
         {
+            Topmost = false;
             ConfigShown = true;
             Config ConfigDialog = new Config();
-            ConfigDialog.Show();            
+            ConfigDialog.Show();         
         }
 
         private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
@@ -255,6 +286,25 @@ namespace ChainTime
         private void Quit_PreviewMouseDown(object sender, MouseButtonEventArgs e)
         {
             System.Windows.Application.Current.Shutdown();
+        }
+
+        private void OnSourceInitialized(object sender, EventArgs e)
+        {
+            HwndSource source = (HwndSource)PresentationSource.FromVisual(this);
+            source.AddHook(new HwndSourceHook(HandleMessages));
+        }
+
+        private IntPtr HandleMessages(IntPtr hwnd, int msg, IntPtr wParam, IntPtr lParam, ref bool handled)
+        {
+            // 0x0112 == WM_SYSCOMMAND, 'Window' command message.
+            // 0xF020 == SC_MINIMIZE, command to minimize the window.
+            if (msg == 0x0112 && ((int)wParam & 0xFFF0) == 0xF020)
+            {
+                // Cancel the minimize.
+                handled = true;                
+            }
+
+            return IntPtr.Zero;
         }
     }
 }

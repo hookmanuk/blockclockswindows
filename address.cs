@@ -1,4 +1,4 @@
-﻿namespace ChainTime
+﻿namespace BlockClocksWindows
 {
     public class address
     {

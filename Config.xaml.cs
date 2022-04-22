@@ -1,6 +1,7 @@
 ﻿using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
+using System.Globalization;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
@@ -14,7 +15,7 @@ using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
 using System.Windows.Threading;
 
-namespace ChainTime
+namespace BlockClocksWindows
 {
     /// <summary>
     /// Interaction logic for Config.xaml
@@ -30,7 +31,9 @@ namespace ChainTime
             Instance = this;
             InitializeComponent();
             Topmost = true;
-            
+
+            Deactivated += Window_Deactivated;
+
             Clock.DataContext = MainWindow.Instance;
             WalletAddress.DataContext = MainWindow.Instance;
 
@@ -267,6 +270,59 @@ namespace ChainTime
             Properties.Settings.Default.Save();
 
             MainWindow.Instance.UpdateClock();
+        }
+
+        private void Refresh_PreviewMouseDown(object sender, MouseButtonEventArgs e)
+        {
+            FindNFTs();
+        }
+
+        private void AlwaysOnTop_Checked(object sender, RoutedEventArgs e)
+        {
+            MainWindow.Instance.SetToForeground();
+        }
+
+        private void AlwaysInBackground_Checked(object sender, RoutedEventArgs e)
+        {
+            MainWindow.Instance.SetToBackground();
+        }
+
+        private void Window_Loaded(object sender, RoutedEventArgs e)
+        {            
+            this.Activate();
+            this.Topmost = false;
+            this.Topmost = true;
+            this.Focus();
+        }
+
+        private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
+        {
+            MainWindow.Instance.Topmost = true;
+        }
+    }
+
+    public class BoolRadioConverter : IValueConverter
+    {
+        public bool Inverse { get; set; }
+
+        public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            bool boolValue = (bool)value;
+
+            return this.Inverse ? !boolValue : boolValue;
+        }
+
+        public object ConvertBack(object value, Type targetType, object parameter, CultureInfo culture)
+        {
+            bool boolValue = (bool)value;
+
+            if (!boolValue)
+            {
+                // We only care when the user clicks a radio button to select it.
+                return null;
+            }
+
+            return !this.Inverse;
         }
     }
 }

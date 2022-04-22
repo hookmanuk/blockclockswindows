@@ -1,4 +1,4 @@
-﻿<Window x:Class="ChainTime.MainWindow"
+﻿<Window x:Class="BlockClocksWindows.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
@@ -7,7 +7,7 @@
         xmlns:wpf="clr-namespace:CefSharp.Wpf;assembly=CefSharp.Wpf"        
         mc:Ignorable="d"        
         Closing="Window_Closing"
-        KeyUp="Window_KeyUp"
+        KeyUp="Window_KeyUp"                         
         Title="MainWindow" Height="450" Width="450" WindowStyle="None" AllowsTransparency="True">
     <Window.Background>
         <SolidColorBrush Color="White" Opacity="0"/>

@@ -1,9 +1,9 @@
-﻿<Window x:Class="ChainTime.Config"
+﻿<Window x:Class="BlockClocksWindows.Config"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"        
-        xmlns:local="clr-namespace:ChainTime" 
+        xmlns:local="clr-namespace:BlockClocksWindows" 
         xmlns:xctk1="http://schemas.xceed.com/wpf/xaml/toolkit"
         mc:Ignorable="d"
         ShowInTaskbar="False"        
@@ -13,7 +13,14 @@
         WindowStartupLocation="CenterOwner" 
         WindowStyle="ToolWindow"        
         Title="Config"
+        Loaded="Window_Loaded"
+        Closing="Window_Closing"
         KeyUp="Window_KeyUp">
+
+    <Window.Resources>
+        <local:BoolRadioConverter x:Key="BoolRadioConverter" />
+        <local:BoolRadioConverter x:Key="InverseBoolRadioConverter" Inverse="True" />
+    </Window.Resources>
     <Grid Margin="10">
         <Grid.Resources>
             <!-- Default settings for controls -->
@@ -38,9 +45,11 @@
         <Grid.ColumnDefinitions>
             <ColumnDefinition Width="Auto" />
             <ColumnDefinition />
+            <ColumnDefinition Width="Auto" />
         </Grid.ColumnDefinitions>
 
         <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
             <RowDefinition Height="Auto" />
@@ -59,8 +68,14 @@
         <TextBox Name="ADAAmount" Grid.Column="1" Grid.Row="2" IsReadOnly="True"/>
         <Label Name="TransactionId" Grid.Column="0" Grid.Row="3">Transaction id:</Label>
         <TextBox Name="TransactionAddress" Grid.Column="1" Grid.Row="3" TextChanged="TransactionAddress_LostFocus" />
+        
         <Label Name="WalletLabel" Grid.Column="0" Grid.Row="4">Linked address:</Label>
         <TextBox Name="WalletAddress" Grid.Column="1" Grid.Row="4" IsEnabled="False" Text="{Binding Path=LinkedAddress}" LostFocus="WalletAddress_LostFocus" />
+        <Button x:Name="Refresh" Height="25" Width="25" Grid.Column="2" Grid.Row="4" Cursor="Hand" Background="Transparent" BorderThickness="0" BorderBrush="Transparent" HorizontalAlignment="Right" VerticalAlignment="Top" PreviewMouseDown="Refresh_PreviewMouseDown" >
+            <ContentControl>
+                <Image Height="20" Width="20" Source="refresh.png" />
+            </ContentControl>
+        </Button>
 
         <Label Grid.Column="0" Grid.Row="5">Clock:</Label>
         <ComboBox Name="Clock" Grid.Column="1" Grid.Row="5" 
@@ -78,12 +93,21 @@
         </ComboBox>
 
         <Label Grid.Column="0" Grid.Row="6" >Show UTC:</Label>
-        <CheckBox Grid.Column="1" Grid.Row="6" HorizontalAlignment="Left" Name="ShowUTC" VerticalAlignment="Center" Checked="ShowUTC_Checked" Unchecked="ShowUTC_Unchecked"></CheckBox>
+        <CheckBox Grid.Column="1" Grid.Row="6" HorizontalAlignment="Left" Name="ShowUTC" VerticalAlignment="Center" IsChecked="{Binding Source={x:Static local:Properties.Settings.Default}, Path=UTCDetails, Mode=TwoWay}" Checked="ShowUTC_Checked" Unchecked="ShowUTC_Unchecked"></CheckBox>
 
-        <Label Grid.Column="0" Grid.Row="7" Name="TransparencyLabel" Visibility="Collapsed">Opacity:</Label>
-        <Slider Grid.Column="1" Grid.Row="7" Maximum="255" Minimum="0" Width="200" HorizontalAlignment="Left" Name="Transparency" Visibility="Collapsed" ValueChanged="Transparency_ValueChanged" ></Slider>
+        <Label Grid.Column="0" Grid.Row="7">Style:</Label>
+        <RadioButton Grid.Column="1" Grid.Row="7" x:Name = "AlwaysOnTop" Content = "Always on Top" HorizontalAlignment = "Left"  
+         Margin = "0,5,0,0" VerticalAlignment = "Top" IsChecked="{Binding Source={x:Static local:Properties.Settings.Default}, Path=BackgroundStyle, Mode=TwoWay, Converter={StaticResource InverseBoolRadioConverter}}" Checked="AlwaysOnTop_Checked"
+         GroupName = "WindowStyle" Width = "100" />
 
-        <Label Grid.Column="0" Grid.Row="8" Margin="0,40,0,0">Status:</Label>
-        <Label Grid.Column="1" Grid.Row="8" Margin="0,40,0,0" Name="Status">Waiting for input</Label>
+        <RadioButton Grid.Column="1" Grid.Row="7" x:Name = "AlwaysInBackground" Content = "In background" HorizontalAlignment = "Left"  
+         Margin = "150,5,0,0" VerticalAlignment = "Top"  
+         GroupName = "WindowStyle" Width = "100" IsChecked="{Binding Source={x:Static local:Properties.Settings.Default}, Path=BackgroundStyle, Mode=TwoWay, Converter={StaticResource BoolRadioConverter}}" Checked="AlwaysInBackground_Checked"/>
+
+        <Label Grid.Column="0" Grid.Row="8" Name="TransparencyLabel" Visibility="Collapsed">Opacity:</Label>
+        <Slider Grid.Column="1" Grid.Row="8" Maximum="255" Minimum="0" Width="200" HorizontalAlignment="Left" Name="Transparency" Visibility="Collapsed" ValueChanged="Transparency_ValueChanged" ></Slider>
+
+        <Label Grid.Column="0" Grid.Row="9" Margin="0,40,0,0">Status:</Label>
+        <Label Grid.Column="1" Grid.Row="9" Margin="0,40,0,0" Name="Status">Waiting for input</Label>
     </Grid >
 </Window>

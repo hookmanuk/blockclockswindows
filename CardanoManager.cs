@@ -7,7 +7,7 @@ using System.IO;
 using System.Net;
 using System.Threading.Tasks;
 
-namespace ChainTime
+namespace BlockClocksWindows
 {
     public partial class CardanoManager
     {
