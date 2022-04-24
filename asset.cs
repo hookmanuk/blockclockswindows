@@ -29,22 +29,14 @@ namespace BlockClocksWindows
         public Onchain_Metadata onchain_metadata { get; set; }
         public object metadata { get; set; }
 
-        public string name { get { return onchain_metadata.name + " - " + onchain_metadata.background; } }
+        public string name { get { return onchain_metadata.name + (string.IsNullOrWhiteSpace(onchain_metadata.background) ? "" : " - " + onchain_metadata.background); } }
     }
 
     public class Onchain_Metadata
     {
         public string name { get; set; }
-        public string image { get; set; }
         public string type { get; set; }
         public File[] files { get; set; }
-        public string hands { get; set; }
-        public string artist { get; set; }
-        public string medium { get; set; }
-        public string authNFT { get; set; }
-        public string numbers { get; set; }
-        public string twitter { get; set; }
-        public string mediaType { get; set; }
         public string background { get; set; }
     }
 

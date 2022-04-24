@@ -77,7 +77,7 @@
             </ContentControl>
         </Button>
 
-        <Label Grid.Column="0" Grid.Row="5">Clock:</Label>
+        <Label Grid.Column="0" Grid.Row="5">NFT:</Label>
         <ComboBox Name="Clock" Grid.Column="1" Grid.Row="5" 
                   ItemsSource="{Binding Path=Clocks}"  
                   SelectedValue="{Binding Path=ActiveClock}"
@@ -92,7 +92,7 @@
             </ComboBox.ItemTemplate>
         </ComboBox>
 
-        <Label Grid.Column="0" Grid.Row="6" >Show UTC:</Label>
+        <Label Name="ShowUTCLabel" Grid.Column="0" Grid.Row="6" >Show UTC:</Label>
         <CheckBox Grid.Column="1" Grid.Row="6" HorizontalAlignment="Left" Name="ShowUTC" VerticalAlignment="Center" IsChecked="{Binding Source={x:Static local:Properties.Settings.Default}, Path=UTCDetails, Mode=TwoWay}" Checked="ShowUTC_Checked" Unchecked="ShowUTC_Unchecked"></CheckBox>
 
         <Label Grid.Column="0" Grid.Row="7">Style:</Label>

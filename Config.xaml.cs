@@ -25,6 +25,7 @@ namespace BlockClocksWindows
         public static Config Instance { get; set; }        
         private int checkcount = 0;
         private int WalletSecretCount = 0;
+        public const string POLICYCLOCK = "ed6bde8a9c920d77e39b41db84381409dae6e2f6557e56ae97fcfe3b";        
 
         public Config()
         {
@@ -50,6 +51,8 @@ namespace BlockClocksWindows
 
             Clock.GetBindingExpression(ComboBox.SelectedValueProperty)
                              .UpdateTarget();
+
+            CheckIsClock();
         }
 
         private void Window_Deactivated(object sender, EventArgs e)
@@ -93,7 +96,7 @@ namespace BlockClocksWindows
                     List<assetinfo> assets = new List<assetinfo>();
                     getWalletAssetListPage(100, 1, assets);
 
-                    Status.Content = MainWindow.Instance.Clocks.Count + " Clocks Found";
+                    Status.Content = MainWindow.Instance.Clocks.Count + " compatible NFTs Found";
 
                     Clock.GetBindingExpression(ComboBox.ItemsSourceProperty)
                               .UpdateTarget();
@@ -103,9 +106,9 @@ namespace BlockClocksWindows
 
                     Properties.Settings.Default.Save();
                 }
-                catch (Exception)
+                catch (Exception ex)
                 {
-                    Status.Content = "Error finding wallet";
+                    Status.Content = "Error getting NFTs " + ex.Message;
                 }
             }
         }
@@ -190,14 +193,26 @@ namespace BlockClocksWindows
                     AllowUIToUpdate();
                     CardanoManager.Instance.GetNFTInfoFromBlockchain(item.id, false, (contents) =>
                     {
-                        if (!string.IsNullOrWhiteSpace(contents) && (
-                            contents.Contains("\"policy_id\":\"ed6bde8a9c920d77e39b41db84381409dae6e2f6557e56ae97fcfe3b\"")
-                        ))
+                        bool valid = false;
+                        foreach (var policy in MainWindow.Instance.AppConfig.policyids)
+                        {
+                            if (contents.Contains($"\"policy_id\":\"{policy}\""))
+                            {
+                                valid = true;
+                                break;
+                            }
+                        }
+                        if (!string.IsNullOrWhiteSpace(contents) && valid)                        
                         {
                             clockassetcontents assetcontents = JsonConvert.DeserializeObject<clockassetcontents>(contents);
                             MainWindow.Instance.Clocks.Add(assetcontents);                        
                         }
                     });
+                }
+
+                if (!MainWindow.Instance.Clocks.Exists(c => c.policy_id == POLICYCLOCK))
+                {
+                    MainWindow.Instance.Clocks.Clear();
                 }
 
                 MainWindow.Instance.Clocks = MainWindow.Instance.Clocks.OrderBy(c => c.name).ToList();
@@ -237,7 +252,23 @@ namespace BlockClocksWindows
                 MainWindow.Instance.UpdateClock();            
                 Properties.Settings.Default.Save();
             }
+
+            CheckIsClock();
         }       
+
+        private void CheckIsClock()
+        {
+            if (MainWindow.Instance.ActiveClock.policy_id == POLICYCLOCK)
+            {
+                ShowUTCLabel.Visibility = Visibility.Visible;
+                ShowUTC.Visibility = Visibility.Visible;
+            }
+            else
+            {
+                ShowUTCLabel.Visibility = Visibility.Collapsed;
+                ShowUTC.Visibility = Visibility.Collapsed;
+            }
+        }
 
         private void okButton_Click(object sender, RoutedEventArgs e)
         {

@@ -15,6 +15,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Remove="config.ini" />
     <None Remove="gear-solid.png" />
     <None Remove="gear-solid.svg" />
     <None Remove="minus-solid.png" />
@@ -23,6 +24,12 @@
     <None Remove="plus-solid.svg" />
     <None Remove="quit.png" />
     <None Remove="refresh.png" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Content Include="config.ini">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </Content>
   </ItemGroup>
 
   <ItemGroup>

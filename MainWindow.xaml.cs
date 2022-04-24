@@ -30,6 +30,7 @@ namespace BlockClocksWindows
         public int ClockOpacity { get; set; }
         public bool ConfigShown { get; set; }
         public BlockClocksWindows.WindowSinker WS { get; set; }
+        public appconfig AppConfig { get; set; }
 
 
         public MainWindow()
@@ -48,7 +49,6 @@ namespace BlockClocksWindows
             timerHover.AutoReset = true;
             timerHover.Elapsed += TimerHover_Elapsed;
             timerHover.Start();
-
 
             string clocks = Properties.Settings.Default.Clocks;
 
@@ -72,9 +72,7 @@ namespace BlockClocksWindows
                 LinkedAddress = linkedAddress;
             }
 
-            PositionClock();
-            
-            //WS = new BlockClocksWindows.WindowSinker(this);        
+            PositionClock();                        
             
             this.SourceInitialized += new EventHandler(OnSourceInitialized); 
 
@@ -82,6 +80,16 @@ namespace BlockClocksWindows
             {
                 SetToBackground();
             }
+
+            try
+            {
+                string strAppConfig = System.IO.File.ReadAllText("config.ini");
+                AppConfig = JsonConvert.DeserializeObject<appconfig>(strAppConfig);
+            }
+            catch (Exception)
+            {
+                AppConfig = new appconfig() { policyids = new string[] { BlockClocksWindows.Config.POLICYCLOCK } };
+            }            
         }
 
         public void SetToBackground()
@@ -117,19 +125,17 @@ namespace BlockClocksWindows
         {
             if (Properties.Settings.Default.Top <= 0 ||
                 Properties.Settings.Default.Left <= 0 ||
-                Properties.Settings.Default.Height <= 0 ||
-                Properties.Settings.Default.Width <= 0)
+                Properties.Settings.Default.Height <= 0)
             {
                 Properties.Settings.Default.Left = System.Windows.SystemParameters.PrimaryScreenHeight / 4;
                 Properties.Settings.Default.Top = System.Windows.SystemParameters.PrimaryScreenHeight / 4;
-                Properties.Settings.Default.Height = System.Windows.SystemParameters.PrimaryScreenHeight / 2;
-                Properties.Settings.Default.Width = System.Windows.SystemParameters.PrimaryScreenHeight / 2;
+                Properties.Settings.Default.Height = System.Windows.SystemParameters.PrimaryScreenHeight / 2;                
             }
 
             this.Top = Properties.Settings.Default.Top;
             this.Left = Properties.Settings.Default.Left;
             this.Height = Properties.Settings.Default.Height;
-            this.Width = Properties.Settings.Default.Width;
+            this.Width = Properties.Settings.Default.Height;
         }
 
         public void UpdateClock()
@@ -146,7 +152,7 @@ namespace BlockClocksWindows
             }
 
             byte[] data = Convert.FromBase64String(base64.Replace("data:text/html;base64,",""));
-            string decodedString = Encoding.UTF8.GetString(data);
+            string decodedString = Encoding.UTF8.GetString(data);            
 
             //circle background colour;
             string circle = $"ctx.translate(r+o, r+o);ctx.beginPath();ctx.arc(0, 0, r, 0, 2 * Math.PI);ctx.fillStyle = '{("#000000" + ClockOpacity.ToString("X").PadLeft(2,Convert.ToChar("0"))) ?? "#000"}';ctx.fill();ctx.translate(-r-o, -r-o);";
