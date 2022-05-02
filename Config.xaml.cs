@@ -1,6 +1,7 @@
 ﻿using Newtonsoft.Json;
 using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Globalization;
 using System.Linq;
 using System.Text;
@@ -25,7 +26,9 @@ namespace BlockClocksWindows
         public static Config Instance { get; set; }        
         private int checkcount = 0;
         private int WalletSecretCount = 0;
-        public const string POLICYCLOCK = "ed6bde8a9c920d77e39b41db84381409dae6e2f6557e56ae97fcfe3b";        
+        public const string POLICYCLOCK = "ed6bde8a9c920d77e39b41db84381409dae6e2f6557e56ae97fcfe3b";
+        public NFTItem ActiveItem { get; set; }
+        public MainWindow ActiveWindow { get { return App.Instance.MainWindows.FirstOrDefault(w => w.NFTItem == ActiveItem); } }
 
         public Config()
         {
@@ -35,24 +38,29 @@ namespace BlockClocksWindows
 
             Deactivated += Window_Deactivated;
 
-            Clock.DataContext = MainWindow.Instance;
+            Clock.DataContext = App.Instance;
             WalletAddress.DataContext = MainWindow.Instance;
 
             Random r = new Random(Guid.NewGuid().GetHashCode());
             ADAAmount.Text = (((float)r.Next(20000, 21000))/((float)10000)).ToString();
             //ADAAmount.Text = "2.0019";
 
-            if (MainWindow.Instance.ActiveClock?.onchain_metadata.type == "Aw0k3n Algorithm Special Edition Mashup" ||
-                MainWindow.Instance.ActiveClock?.onchain_metadata.type == "Custom nft mashup")
+            //if (App.Instance.ActiveClock?.onchain_metadata.type == "Aw0k3n Algorithm Special Edition Mashup" ||
+            //    App.Instance.ActiveClock?.onchain_metadata.type == "Custom nft mashup")
+            //{
+            //    TransparencyLabel.Visibility = Visibility.Visible;
+            //    Transparency.Visibility = Visibility.Visible;
+            //}
+
+            if (!string.IsNullOrWhiteSpace(Properties.Settings.Default.LinkedAddress))
             {
-                TransparencyLabel.Visibility = Visibility.Visible;
-                Transparency.Visibility = Visibility.Visible;
+                Tabs.SelectedItem = LayoutTab;             
             }
 
-            Clock.GetBindingExpression(ComboBox.SelectedValueProperty)
-                             .UpdateTarget();
+            this.DataContext = this.ActiveItem;
 
-            CheckIsClock();
+            Clock.GetBindingExpression(ComboBox.SelectedValueProperty)
+                             .UpdateTarget();            
         }
 
         private void Window_Deactivated(object sender, EventArgs e)
@@ -88,7 +96,7 @@ namespace BlockClocksWindows
             {
                 try
                 {
-                    MainWindow.Instance.Clocks.Clear();
+                    App.Instance.Clocks.Clear();
 
                     checkcount = 0;
                     Status.Content = "Getting NFTs...";
@@ -96,12 +104,17 @@ namespace BlockClocksWindows
                     List<assetinfo> assets = new List<assetinfo>();
                     getWalletAssetListPage(100, 1, assets);
 
-                    Status.Content = MainWindow.Instance.Clocks.Count + " compatible NFTs Found";
+                    if (!App.Instance.Clocks.Exists(c => c.policy_id == POLICYCLOCK))
+                    {
+                        App.Instance.Clocks.Clear();
+                    }
+
+                    Status.Content = App.Instance.Clocks.Count + " compatible NFTs Found";
 
                     Clock.GetBindingExpression(ComboBox.ItemsSourceProperty)
                               .UpdateTarget();
 
-                    Properties.Settings.Default.Clocks = JsonConvert.SerializeObject(MainWindow.Instance.Clocks);
+                    Properties.Settings.Default.Clocks = JsonConvert.SerializeObject(App.Instance.Clocks);
                     Properties.Settings.Default.LinkedAddress = WalletAddress.Text;
 
                     Properties.Settings.Default.Save();
@@ -189,33 +202,49 @@ namespace BlockClocksWindows
                 foreach (assetinfo item in assets)
                 {
                     checkcount++;
-                    Status.Content = "Checking NFT " + checkcount++;
-                    AllowUIToUpdate();
-                    CardanoManager.Instance.GetNFTInfoFromBlockchain(item.id, false, (contents) =>
+                    Status.Content = "Checking NFT " + checkcount;
+                    AllowUIToUpdate();                    
+
+                    Task t = Task.Run(async delegate
                     {
-                        bool valid = false;
-                        foreach (var policy in MainWindow.Instance.AppConfig.policyids)
+                        await Task.Delay(1);
+                        CardanoManager.Instance.GetNFTInfoFromBlockchain(item.id, false, (contents) =>
                         {
-                            if (contents.Contains($"\"policy_id\":\"{policy}\""))
+                            //bool valid = false;
+                            //foreach (var policy in MainWindow.Instance.AppConfig.policyids)
+                            //{
+                            //    if (contents.Contains($"\"policy_id\":\"{policy}\""))
+                            //    {
+                            //        valid = true;
+                            //        break;
+                            //    }
+                            //}
+                            if (!string.IsNullOrWhiteSpace(contents))
                             {
-                                valid = true;
-                                break;
+                                try
+                                {
+                                    clockassetcontents assetcontents = JsonConvert.DeserializeObject<clockassetcontents>(contents);
+                                    CardanoManager.Instance.ParseMetadata(assetcontents, contents);
+                                    App.Instance.Clocks.Add(assetcontents);                                    
+                                }
+                                catch (Exception ex)
+                                {
+                                    Debug.WriteLine("Errored");
+                                    //couldn't decode                                
+                                }
+
                             }
-                        }
-                        if (!string.IsNullOrWhiteSpace(contents) && valid)                        
-                        {
-                            clockassetcontents assetcontents = JsonConvert.DeserializeObject<clockassetcontents>(contents);
-                            MainWindow.Instance.Clocks.Add(assetcontents);                        
-                        }
+                            else
+                            {
+                                Debug.WriteLine("No content");
+                                //nothing here??
+                            }
+                        });
                     });
-                }
+                    t.Wait(500);
+                }                
 
-                if (!MainWindow.Instance.Clocks.Exists(c => c.policy_id == POLICYCLOCK))
-                {
-                    MainWindow.Instance.Clocks.Clear();
-                }
-
-                MainWindow.Instance.Clocks = MainWindow.Instance.Clocks.OrderBy(c => c.name).ToList();
+                App.Instance.Clocks = App.Instance.Clocks.OrderBy(c => c.name).ToList();
 
                 callback(assets);
             });
@@ -225,40 +254,40 @@ namespace BlockClocksWindows
 
         private void Clock_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            Properties.Settings.Default.ActiveClock = JsonConvert.SerializeObject(MainWindow.Instance.ActiveClock);
-            
-            if (MainWindow.Instance.ActiveClock.onchain_metadata.type == "Aw0k3n Algorithm Special Edition Mashup" ||
-                MainWindow.Instance.ActiveClock.onchain_metadata.type == "Custom nft mashup")
+            ActiveItem = (NFTItem)NFTItems.SelectedItem;
+            if (App.Instance.ActiveClock != null && ActiveItem != null)
             {
-                MainWindow.Instance.ClockOpacity = 0;
-                TransparencyLabel.Visibility = Visibility.Visible;
-                Transparency.Visibility = Visibility.Visible;
-            }
-            else
-            {
-                MainWindow.Instance.ClockOpacity = 255;
-                TransparencyLabel.Visibility = Visibility.Collapsed;
-                Transparency.Visibility = Visibility.Collapsed;                
-            }            
+                ActiveItem.NFT = App.Instance.ActiveClock.name;
+                ActiveItem.Asset = App.Instance.ActiveClock.asset;
 
-            if (Convert.ToInt32(Transparency.Value) != MainWindow.Instance.ClockOpacity)
-            {
-                Transparency.Value = MainWindow.Instance.ClockOpacity;
-                Properties.Settings.Default.ClockOpacity = MainWindow.Instance.ClockOpacity;
-                Properties.Settings.Default.Save();
-            }
-            else
-            {
-                MainWindow.Instance.UpdateClock();            
-                Properties.Settings.Default.Save();
-            }
+                JsonConvert.SerializeObject(App.Instance.ActiveClock);
 
-            CheckIsClock();
+                if (App.Instance.ActiveClock.onchain_metadata != null &&
+                    (App.Instance.ActiveClock.onchain_metadata.type == "Aw0k3n Algorithm Special Edition Mashup" ||
+                    App.Instance.ActiveClock.onchain_metadata.type == "Custom nft mashup"))
+                {
+                    ActiveWindow.ClockOpacity = 0;
+                    TransparencyLabel.Visibility = Visibility.Visible;
+                    Transparency.Visibility = Visibility.Visible;
+                }
+                else
+                {
+                    ActiveWindow.ClockOpacity = 255;
+                    TransparencyLabel.Visibility = Visibility.Collapsed;
+                    Transparency.Visibility = Visibility.Collapsed;
+                }
+
+                ActiveWindow.UpdateClock();
+                Properties.Settings.Default.Save();
+
+                CheckIsClock();
+                RefreshList();
+            }
         }       
 
         private void CheckIsClock()
         {
-            if (MainWindow.Instance.ActiveClock.policy_id == POLICYCLOCK)
+            if (App.Instance.ActiveClock.policy_id == POLICYCLOCK)
             {
                 ShowUTCLabel.Visibility = Visibility.Visible;
                 ShowUTC.Visibility = Visibility.Visible;
@@ -268,21 +297,16 @@ namespace BlockClocksWindows
                 ShowUTCLabel.Visibility = Visibility.Collapsed;
                 ShowUTC.Visibility = Visibility.Collapsed;
             }
-        }
-
-        private void okButton_Click(object sender, RoutedEventArgs e)
-        {
-            this.Close();
         }       
 
         private void Transparency_ValueChanged(object sender, RoutedPropertyChangedEventArgs<double> e)
         {
-            MainWindow.Instance.ClockOpacity= Convert.ToInt32(e.NewValue);
-            Properties.Settings.Default.ClockOpacity = MainWindow.Instance.ClockOpacity;
+            ActiveWindow.ClockOpacity= Convert.ToInt32(e.NewValue);
+            Properties.Settings.Default.ClockOpacity = ActiveWindow.ClockOpacity;
 
             Properties.Settings.Default.Save();
-       
-            MainWindow.Instance.UpdateClock();
+
+            ActiveWindow?.UpdateClock();
         }
 
         private void ShowUTC_Checked(object sender, RoutedEventArgs e)
@@ -291,7 +315,7 @@ namespace BlockClocksWindows
 
             Properties.Settings.Default.Save();
 
-            MainWindow.Instance.UpdateClock();
+            ActiveWindow?.UpdateClock();
         }
 
         private void ShowUTC_Unchecked(object sender, RoutedEventArgs e)
@@ -300,7 +324,7 @@ namespace BlockClocksWindows
 
             Properties.Settings.Default.Save();
 
-            MainWindow.Instance.UpdateClock();
+            ActiveWindow?.UpdateClock();
         }
 
         private void Refresh_PreviewMouseDown(object sender, MouseButtonEventArgs e)
@@ -310,12 +334,16 @@ namespace BlockClocksWindows
 
         private void AlwaysOnTop_Checked(object sender, RoutedEventArgs e)
         {
-            MainWindow.Instance.SetToForeground();
+            ActiveWindow?.SetToForeground();
+            ActiveItem.BackgroundStyle = false;
+            Properties.Settings.Default.Save();
         }
 
         private void AlwaysInBackground_Checked(object sender, RoutedEventArgs e)
         {
-            MainWindow.Instance.SetToBackground();
+            ActiveWindow?.SetToBackground();
+            ActiveItem.BackgroundStyle = true;
+            Properties.Settings.Default.Save();
         }
 
         private void Window_Loaded(object sender, RoutedEventArgs e)
@@ -328,7 +356,104 @@ namespace BlockClocksWindows
 
         private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
         {
-            MainWindow.Instance.Topmost = true;
+            foreach (var item in App.Instance.MainWindows)
+            {
+                NFTItem nft = Properties.Settings.Default.NFTItems.Where(n => n == item.NFTItem).FirstOrDefault();
+                if (!nft.BackgroundStyle)
+                {
+                    item.Topmost = true;
+                }
+            }            
+        }
+
+        private void AddWindow_Click(object sender, RoutedEventArgs e)
+        {
+            NFTItem item = new NFTItem();
+            if (AlwaysOnTop.IsChecked.HasValue)
+            {
+                item.BackgroundStyle = !AlwaysOnTop.IsChecked.Value;                
+            }
+            Properties.Settings.Default.NFTItems.Add(item);
+
+            App.Instance.AddWindow(item);
+
+            RefreshList(true);
+        }
+
+        private void RemoveWindow_Click(object sender, RoutedEventArgs e)
+        {
+            if (ActiveItem != null && ActiveWindow != null)
+            {
+                Properties.Settings.Default.NFTItems.Remove(ActiveItem);
+                ActiveWindow.Close();
+                App.Instance.MainWindows.Remove(ActiveWindow);
+                
+
+                RefreshList(true);
+            }            
+        }
+
+        public void ChangeActiveWindow(MainWindow window)
+        {            
+            ActiveItem = window.NFTItem;
+            NFTItems.SelectedItem = ActiveItem;
+        }
+
+        private void RefreshList(bool updateSelected = false)
+        {
+            NFTItems.Items.Refresh();
+
+            if (updateSelected)
+            {
+                if (NFTItems.Items.Count > 0)
+                {
+                    NFTItems.SelectedItem = NFTItems.Items[NFTItems.Items.Count - 1];
+                }
+            }
+
+            Properties.Settings.Default.Save();
+        }
+
+        protected override void OnMouseLeftButtonDown(MouseButtonEventArgs e)
+        {
+            base.OnMouseLeftButtonDown(e);
+
+            // Begin dragging the window
+            if (e.LeftButton == MouseButtonState.Pressed)
+            {
+                this.DragMove();
+            }
+        }
+
+        private void Close_PreviewMouseDown(object sender, MouseButtonEventArgs e)
+        {
+            this.Close();
+            App.Instance.ConfigShown = false;
+        }
+
+        private void NFTItems_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            ActiveItem = (NFTItem)NFTItems.SelectedItem;
+
+            if (ActiveItem != null)
+            {
+
+                App.Instance.ActiveClock = App.Instance.Clocks.Where(c => c.name == ActiveItem.NFT).FirstOrDefault();
+
+                if (App.Instance.ActiveClock != null)
+                {
+                    Clock.GetBindingExpression(ComboBox.SelectedValueProperty)
+                                      .UpdateTarget();
+
+                    AlwaysOnTop.IsChecked = !ActiveItem.BackgroundStyle;
+                    AlwaysInBackground.IsChecked = ActiveItem.BackgroundStyle;
+                }
+            }
+        }
+
+        private void QuitApp_PreviewMouseDown(object sender, MouseButtonEventArgs e)
+        {
+            App.Instance.Shutdown();
         }
     }
 

@@ -1,4 +1,5 @@
 ﻿using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace BlockClocksWindows
 {
@@ -29,20 +30,25 @@ namespace BlockClocksWindows
         public Onchain_Metadata onchain_metadata { get; set; }
         public object metadata { get; set; }
 
-        public string name { get { return onchain_metadata.name + (string.IsNullOrWhiteSpace(onchain_metadata.background) ? "" : " - " + onchain_metadata.background); } }
+        public string name { get { return onchain_metadata == null ? ((JToken)metadata).Value<string>("name") : onchain_metadata.name + (string.IsNullOrWhiteSpace(onchain_metadata.background) ? "" : " - " + onchain_metadata.background); } }
+
+        public string ipfshash;
+        public string videohash;
+        public string onchainhtml;
+        public string image;
     }
 
     public class Onchain_Metadata
     {
         public string name { get; set; }
         public string type { get; set; }
-        public File[] files { get; set; }
+        public object files { get; set; }
         public string background { get; set; }
     }
 
     public class File
     {
-        public string[] src { get; set; }
+        public object src { get; set; }
         public string name { get; set; }
         public string mediaType { get; set; }
     }

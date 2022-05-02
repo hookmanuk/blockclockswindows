@@ -3,6 +3,7 @@ using Newtonsoft.Json.Linq;
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Net;
 using System.Threading.Tasks;
@@ -168,7 +169,7 @@ namespace BlockClocksWindows
         }        
 
         public void GetNFTInfoFromBlockchain(string asset, bool cache, System.Action<string> callback, System.Action<string, string> errorCallback = null)
-        {
+        {            
             WebRequest request = WebRequest.Create(APIROOT + "assets/" + asset);
             request.Headers.Add("project_id", ApiKey);
 
@@ -180,9 +181,7 @@ namespace BlockClocksWindows
                 // Open the stream using a StreamReader for easy access.
                 StreamReader reader = new StreamReader(dataStream);
                 // Read the content.
-                responseFromServer = reader.ReadToEnd();
-                // Display the content.
-                Console.WriteLine(responseFromServer);
+                responseFromServer = reader.ReadToEnd();                                
             }
 
             // Close the response.
@@ -335,6 +334,51 @@ namespace BlockClocksWindows
             transaction transactionResult = JsonConvert.DeserializeObject<transaction>(responseFromServer);
 
             callback(transactionResult);
+        }
+
+        public void ParseMetadata(clockassetcontents extnft, string metadata)
+        {
+            JObject jsoninfo = JObject.Parse(metadata);
+            extnft.ipfshash = FindImageIPFSHash(jsoninfo);
+
+            if (!string.IsNullOrEmpty(extnft.ipfshash) && extnft.ipfshash.Contains("base64,"))
+            {
+                //actually base64 encoded file, decode it instead
+                extnft.ipfshash = null;
+                //do decoding here, probably an svg, check type
+            }
+            else if (!string.IsNullOrEmpty(extnft.ipfshash) && extnft.ipfshash.StartsWith("http"))
+            {
+                extnft.image = extnft.ipfshash;
+                extnft.ipfshash = null;
+            }
+
+            string videohash = null;
+
+            JToken src = jsoninfo.SelectToken("files[0].src");
+            if (src != null)
+            {
+                if (jsoninfo.SelectToken("files[0].mediaType")?.ToString() == "video/mp4")
+                {
+                    videohash = src.ToString();
+
+                    videohash = Stripipfs(videohash);
+
+                    extnft.videohash = videohash;
+                }
+                else
+                {
+                    if (src.Type.ToString() == "Array")
+                    {
+                        var filesrc = jsoninfo.SelectToken("files[0].src")?.ToObject<string[]>();
+
+                        if (filesrc != null)
+                        {
+                            extnft.onchainhtml = string.Concat(filesrc).Replace("data:text/html;base64,", "");
+                        }
+                    }
+                }
+            }        
         }
     }    
 }
