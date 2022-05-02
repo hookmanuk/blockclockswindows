@@ -8,6 +8,7 @@
     <SelfContained>false</SelfContained>
     <RuntimeIdentifier>win-x86</RuntimeIdentifier>
     <ApplicationIcon>logoicon_kiI_icon.ico</ApplicationIcon>
+    <StartupObject>BlockClocksWindows.App</StartupObject>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
@@ -15,6 +16,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <None Remove="circle-exclamation-solid.png" />
     <None Remove="config.ini" />
     <None Remove="gear-solid.png" />
     <None Remove="gear-solid.svg" />
@@ -22,8 +24,10 @@
     <None Remove="minus-solid.svg" />
     <None Remove="plus-solid.png" />
     <None Remove="plus-solid.svg" />
+    <None Remove="quit-dark.png" />
     <None Remove="quit.png" />
     <None Remove="refresh.png" />
+    <None Remove="spinner-solid.png" />
   </ItemGroup>
 
   <ItemGroup>
@@ -36,9 +40,22 @@
     <PackageReference Include="CefSharp.Wpf.NETCore" Version="100.0.140" />
     <PackageReference Include="Extended.Wpf.Toolkit" Version="4.3.0" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.1" />
+    <PackageReference Include="System.Drawing.Common" Version="6.0.0" />
   </ItemGroup>
 
   <ItemGroup>
+    <Reference Include="System.Windows.Forms">
+      <HintPath>..\..\..\Windows\Microsoft.NET\Framework\v2.0.50727\System.Windows.Forms.dll</HintPath>
+    </Reference>
+    <Reference Include="WindowsFormsIntegration">
+      <HintPath>..\..\..\Program Files\Reference Assemblies\Microsoft\Framework\v3.0\WindowsFormsIntegration.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Resource Include="circle-exclamation-solid.png">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </Resource>
     <Resource Include="gear-solid.png">
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </Resource>
@@ -48,8 +65,12 @@
     <Resource Include="plus-solid.png">
       <CopyToOutputDirectory>Never</CopyToOutputDirectory>
     </Resource>
+    <Resource Include="quit-dark.png" />
     <Resource Include="quit.png" />
     <Resource Include="refresh.png" />
+    <Resource Include="spinner-solid.png">
+      <CopyToOutputDirectory>Never</CopyToOutputDirectory>
+    </Resource>
   </ItemGroup>
 
   <ItemGroup>
@@ -61,6 +82,9 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Update="logoicon_kiI_icon.ico">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Update="Properties\Settings.settings">
       <Generator>SettingsSingleFileGenerator</Generator>
       <LastGenOutput>Settings.Designer.cs</LastGenOutput>

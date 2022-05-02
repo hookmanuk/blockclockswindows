@@ -1,9 +1,9 @@
-﻿<Application x:Class="ChainTime.App"
+﻿<Application x:Class="BlockClocksWindows.App"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:local="clr-namespace:ChainTime"
-             StartupUri="MainWindow.xaml">
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"             
+             Exit="Application_Exit"
+             >
     <Application.Resources>
-         
+        
     </Application.Resources>
 </Application>

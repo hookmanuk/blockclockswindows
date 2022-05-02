@@ -8,6 +8,8 @@
 // </auto-generated>
 //------------------------------------------------------------------------------
 
+using System.Collections.Generic;
+
 namespace BlockClocksWindows.Properties {
     
     
@@ -140,6 +142,18 @@ namespace BlockClocksWindows.Properties {
             }
             set {
                 this["BackgroundStyle"] = value;
+            }
+        }
+        
+        [global::System.Configuration.UserScopedSettingAttribute()]
+        [global::System.Diagnostics.DebuggerNonUserCodeAttribute()]
+        [global::System.Configuration.DefaultSettingValueAttribute("")]
+        public List<NFTItem> NFTItems {
+            get {
+                return ((List<NFTItem>)(this["NFTItems"]));
+            }
+            set {
+                this["NFTItems"] = value;
             }
         }
     }

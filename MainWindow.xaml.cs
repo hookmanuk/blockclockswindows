@@ -1,6 +1,7 @@
 ﻿using BlockClocksWindows;
 using CefSharp;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -11,6 +12,7 @@ using System.Windows;
 using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
+using System.Windows.Media.Imaging;
 
 namespace BlockClocksWindows
 {
@@ -22,20 +24,24 @@ namespace BlockClocksWindows
         public static MainWindow Instance { get; set; }
         Timer timer;
         Timer timerHover;
-        private int ResetCount;
-
-        public clockassetcontents ActiveClock { get; set; }
-        public List<clockassetcontents> Clocks { get; set; } = new List<clockassetcontents>();  
+        private int ResetCount;       
+        
         public string LinkedAddress { get; set; }
-        public int ClockOpacity { get; set; }
-        public bool ConfigShown { get; set; }
+        public int ClockOpacity { get; set; }        
         public BlockClocksWindows.WindowSinker WS { get; set; }
         public appconfig AppConfig { get; set; }
 
+        public NFTItem NFTItem { get; set; }
 
-        public MainWindow()
+        public const string IMAGEHOSTPREFIX = "https://infura-ipfs.io/ipfs/";
+
+
+        public MainWindow(NFTItem item)
         {
             Instance = this;
+
+            NFTItem = item;
+
             new CardanoManager();            
             InitializeComponent();
             Topmost = true;
@@ -48,23 +54,9 @@ namespace BlockClocksWindows
             timerHover = new Timer(2000);
             timerHover.AutoReset = true;
             timerHover.Elapsed += TimerHover_Elapsed;
-            timerHover.Start();
-
-            string clocks = Properties.Settings.Default.Clocks;
-
-            if (!string.IsNullOrWhiteSpace(clocks))
-            {
-                Clocks = JsonConvert.DeserializeObject<List<clockassetcontents>>(clocks)?.OrderBy(c => c.name).ToList();
-            }
+            timerHover.Start();            
             
-            ClockOpacity = Properties.Settings.Default.ClockOpacity;            
-
-            string activeclock = Properties.Settings.Default.ActiveClock;
-            if (!string.IsNullOrWhiteSpace(activeclock))
-            {
-                ActiveClock = JsonConvert.DeserializeObject<clockassetcontents>(activeclock);
-                UpdateClock();
-            }
+            ClockOpacity = Properties.Settings.Default.ClockOpacity;                        
 
             string linkedAddress = Properties.Settings.Default.LinkedAddress;
             if (!string.IsNullOrWhiteSpace(linkedAddress))
@@ -123,59 +115,114 @@ namespace BlockClocksWindows
 
         private void PositionClock()
         {
-            if (Properties.Settings.Default.Top <= 0 ||
-                Properties.Settings.Default.Left <= 0 ||
-                Properties.Settings.Default.Height <= 0)
+            if (NFTItem.Top <= 0 ||
+                NFTItem.Left <= 0 ||
+                NFTItem.Height <= 0)
             {
-                Properties.Settings.Default.Left = System.Windows.SystemParameters.PrimaryScreenHeight / 4;
-                Properties.Settings.Default.Top = System.Windows.SystemParameters.PrimaryScreenHeight / 4;
-                Properties.Settings.Default.Height = System.Windows.SystemParameters.PrimaryScreenHeight / 2;                
+                NFTItem.Left = System.Windows.SystemParameters.PrimaryScreenHeight / 4;
+                NFTItem.Top = System.Windows.SystemParameters.PrimaryScreenHeight / 4;
+                NFTItem.Height = System.Windows.SystemParameters.PrimaryScreenHeight / 2;                
             }
 
-            this.Top = Properties.Settings.Default.Top;
-            this.Left = Properties.Settings.Default.Left;
-            this.Height = Properties.Settings.Default.Height;
-            this.Width = Properties.Settings.Default.Height;
+            this.Top = NFTItem.Top;
+            this.Left = NFTItem.Left;
+            this.Height = NFTItem.Height;
+            this.Width = NFTItem.Height;
         }
 
         public void UpdateClock()
         {
-            SetClock(ActiveClock);
+            clockassetcontents clock = App.Instance.Clocks.FirstOrDefault(c => c.asset == NFTItem.Asset);
+            if (clock != null)
+            {
+                SetClock(clock);
+            }
         }
 
         public void SetClock(clockassetcontents clock)
         {
             string base64 = "";
-            foreach (var item in clock.onchain_metadata.files[0].src)
+            bool processed = false;
+            if (clock.onchain_metadata != null && clock.onchain_metadata.files != null && clock.onchain_metadata.files.GetType().Name == "JArray")
             {
-                base64 += item;
+                var src = ((JArray)clock.onchain_metadata.files)[0]["src"];
+                if (src != null)
+                {
+                    foreach (var item in src)
+                    {
+                        base64 += item;
+                    }
+
+                    if (base64.Contains("data:text/html;base64,"))
+                    {
+                        byte[] data = Convert.FromBase64String(base64.Replace("data:text/html;base64,", ""));
+                        string decodedString = Encoding.UTF8.GetString(data);
+
+                        //circle background colour;
+                        string circle = $"ctx.translate(r+o, r+o);ctx.beginPath();ctx.arc(0, 0, r, 0, 2 * Math.PI);ctx.fillStyle = '{("#000000" + ClockOpacity.ToString("X").PadLeft(2, Convert.ToChar("0"))) ?? "#000"}';ctx.fill();ctx.translate(-r-o, -r-o);";
+
+                        //needs code for circle background to not be transparent for some clocks
+                        //if (clock.onchain_metadata.type == "Aw0k3n Algorithm Special Edition Mashup")
+                        //{
+                        decodedString = decodedString.Replace("var backc = '#000'", "var backc = '#0000'")
+                                .Replace("var backc = '#EEE'", "var backc = '#EEE0'")
+                                .Replace("ctx.fillStyle= backc;", circle + "ctx.strokeStyle=backc;ctx.fillStyle= backc;");
+                        //}            
+
+                        if (Properties.Settings.Default.UTCDetails)
+                        {
+                            decodedString = decodedString.Replace("</body>", "<script>initnft({ showinfo:true });</script></body>");
+                        }
+
+                        var plainTextBytes = Encoding.UTF8.GetBytes(decodedString);
+                        base64 = "data:text/html;base64," + Convert.ToBase64String(plainTextBytes);
+
+                        Browser.Visibility = Visibility.Visible;
+                        Browser.Load(base64);
+
+                        processed = true;
+
+                        Image.Visibility = Visibility.Collapsed;
+                    }
+                }
+            }
+            if (!processed)
+            {
+                if (clock.ipfshash != null)
+                {
+                    string uri = IMAGEHOSTPREFIX + clock.ipfshash;
+
+                    // Create a BitmapSource  
+                    BitmapImage bitmap = new BitmapImage();
+                    bitmap.BeginInit();
+                    bitmap.UriSource = new Uri(uri);
+                    bitmap.EndInit();
+
+                    bitmap.DownloadCompleted += Bitmap_DownloadCompleted;
+
+                    Image.Visibility = Visibility.Visible;
+                    Image.Source = bitmap;
+
+                    processed = true;
+
+                    Browser.Visibility = Visibility.Collapsed;
+                }
             }
 
-            byte[] data = Convert.FromBase64String(base64.Replace("data:text/html;base64,",""));
-            string decodedString = Encoding.UTF8.GetString(data);            
-
-            //circle background colour;
-            string circle = $"ctx.translate(r+o, r+o);ctx.beginPath();ctx.arc(0, 0, r, 0, 2 * Math.PI);ctx.fillStyle = '{("#000000" + ClockOpacity.ToString("X").PadLeft(2,Convert.ToChar("0"))) ?? "#000"}';ctx.fill();ctx.translate(-r-o, -r-o);";
-
-            //needs code for circle background to not be transparent for some clocks
-            //if (clock.onchain_metadata.type == "Aw0k3n Algorithm Special Edition Mashup")
-            //{
-            decodedString = decodedString.Replace("var backc = '#000'", "var backc = '#0000'")
-                    .Replace("var backc = '#EEE'", "var backc = '#EEE0'")
-                    .Replace("ctx.fillStyle= backc;", circle + "ctx.strokeStyle=backc;ctx.fillStyle= backc;");
-            //}            
-
-            if (Properties.Settings.Default.UTCDetails)
+            if (processed)
             {
-                decodedString = decodedString.Replace("</body>", "<script>initnft({ showinfo:true });</script></body>");
+                ImagePlaceholder.Visibility = Visibility.Visible;
+                BitmapImage bitmap = new BitmapImage();
+                bitmap.BeginInit();
+                bitmap.UriSource = new Uri("pack://application:,,/spinner-solid.png");
+                bitmap.EndInit();
+                ImagePlaceholder.Source = bitmap;                
             }
+        }
 
-            var plainTextBytes = Encoding.UTF8.GetBytes(decodedString);
-            base64 = "data:text/html;base64," + Convert.ToBase64String(plainTextBytes);
-
-            Browser.Load(base64);
-
-            ActiveClock = clock;
+        private void Bitmap_DownloadCompleted(object sender, EventArgs e)
+        {
+            ImagePlaceholder.Visibility = Visibility.Collapsed;
         }
 
         private void TimerHover_Elapsed(object sender, ElapsedEventArgs e)
@@ -188,8 +235,7 @@ namespace BlockClocksWindows
                     {
                         Minus.Visibility = Visibility.Visible;
                         Plus.Visibility = Visibility.Visible;
-                        Config.Visibility = Visibility.Visible;
-                        Quit.Visibility = Visibility.Visible;
+                        Config.Visibility = Visibility.Visible;                        
                     }
                 }
                 else
@@ -198,15 +244,9 @@ namespace BlockClocksWindows
                     {
                         Minus.Visibility = Visibility.Hidden;
                         Plus.Visibility = Visibility.Hidden;
-                        Config.Visibility = Visibility.Hidden;
-                        Quit.Visibility = Visibility.Hidden;
+                        Config.Visibility = Visibility.Hidden;                        
                     }
-                }
-
-                if (ActiveClock == null && !ConfigShown)
-                {
-                    ShowConfig();
-                }
+                }                
             }));
         }
 
@@ -219,8 +259,13 @@ namespace BlockClocksWindows
 
         private void Window_MouseDown(object sender, MouseButtonEventArgs e)
         {
-            if (e.ChangedButton == MouseButton.Left && e.Source == Browser)
+            if (e.ChangedButton == MouseButton.Left && (e.Source == Browser || e.Source == Image || e.Source == ImagePlaceholder))
                 this.DragMove();
+
+            if (App.Instance.ConfigDialog?.Visibility == Visibility.Visible)
+            {
+                App.Instance.ConfigDialog.ChangeActiveWindow(this);
+            }
         }
 
         private void Window_MouseUp(object sender, MouseButtonEventArgs e)
@@ -268,25 +313,19 @@ namespace BlockClocksWindows
 
         private void Config_Click(object sender, MouseButtonEventArgs e)
         {            
-            ShowConfig();
+            App.Instance.ShowConfig();
         }
 
-        private void ShowConfig()
-        {
-            Topmost = false;
-            ConfigShown = true;
-            Config ConfigDialog = new Config();
-            ConfigDialog.Show();         
-        }
+        
 
         private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
         {
-            Properties.Settings.Default.Top = this.Top;
-            Properties.Settings.Default.Left = this.Left;
-            Properties.Settings.Default.Height = this.Height;
-            Properties.Settings.Default.Width = this.Width;
+            //Properties.Settings.Default.Top = this.Top;
+            //Properties.Settings.Default.Left = this.Left;
+            //Properties.Settings.Default.Height = this.Height;
+            //Properties.Settings.Default.Width = this.Width;
 
-            Properties.Settings.Default.Save();
+            //Properties.Settings.Default.Save();
         }
 
         private void Quit_PreviewMouseDown(object sender, MouseButtonEventArgs e)
@@ -311,6 +350,14 @@ namespace BlockClocksWindows
             }
 
             return IntPtr.Zero;
+        }       
+
+        private void Browser_FrameLoadEnd(object sender, FrameLoadEndEventArgs e)
+        {
+            Application.Current.Dispatcher.Invoke(new Action(() =>
+            {
+                ImagePlaceholder.Visibility = Visibility.Collapsed;
+            }));
         }
     }
 }
