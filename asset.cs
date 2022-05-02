@@ -30,7 +30,7 @@ namespace BlockClocksWindows
         public Onchain_Metadata onchain_metadata { get; set; }
         public object metadata { get; set; }
 
-        public string name { get { return onchain_metadata == null ? ((JToken)metadata).Value<string>("name") : onchain_metadata.name + (string.IsNullOrWhiteSpace(onchain_metadata.background) ? "" : " - " + onchain_metadata.background); } }
+        public string name { get { return onchain_metadata == null ? metadata == null ? "" : ((JToken)metadata).Value<string>("name") : onchain_metadata.name + (string.IsNullOrWhiteSpace(onchain_metadata.background) ? "" : " - " + onchain_metadata.background); } }
 
         public string ipfshash;
         public string videohash;
