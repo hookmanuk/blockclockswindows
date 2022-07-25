@@ -153,10 +153,22 @@ namespace BlockClocksWindows
                         base64 += item;
                     }
 
-                    if (base64.Contains("data:text/html;base64,"))
+                    string decodedString = null;
+
+                    if (base64.StartsWith("data:text/html;utf8,"))
                     {
-                        byte[] data = Convert.FromBase64String(base64.Replace("data:text/html;base64,", ""));
-                        string decodedString = Encoding.UTF8.GetString(data);
+                        decodedString = base64.Substring(20);
+                    }
+                    else if (base64.Contains("data:text/html;base64,"))
+                    {
+                        base64 = base64.Replace("data:text/html;base64,", "");
+                        byte[] data = Convert.FromBase64String(base64);
+                        decodedString = Encoding.UTF8.GetString(data);
+                    }                    
+
+                    if (decodedString != null)
+                    {
+                        
 
                         //circle background colour;
                         string circle = $"ctx.translate(r+o, r+o);ctx.beginPath();ctx.arc(0, 0, r, 0, 2 * Math.PI);ctx.fillStyle = '{("#000000" + ClockOpacity.ToString("X").PadLeft(2, Convert.ToChar("0"))) ?? "#000"}';ctx.fill();ctx.translate(-r-o, -r-o);";
