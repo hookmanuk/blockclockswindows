@@ -242,10 +242,16 @@ namespace BlockClocksWindows
             Image.Source = bitmap;
         }
 
+        private int _retries = 0;
         private void Bitmap_DownloadFailed(object sender, ExceptionEventArgs e)
         {
-            var uri = ((System.Net.HttpWebResponse)((System.Net.WebException)e.ErrorException).Response).ResponseUri.AbsoluteUri;
-            getImage(uri);
+            _retries++;
+
+            if (_retries < 20)
+            {
+                var uri = ((System.Net.HttpWebResponse)((System.Net.WebException)e.ErrorException).Response).ResponseUri.AbsoluteUri;
+                getImage(uri);
+            }
             //throw new NotImplementedException();
         }
 
