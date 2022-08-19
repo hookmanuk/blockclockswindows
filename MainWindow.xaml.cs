@@ -33,7 +33,11 @@ namespace BlockClocksWindows
 
         public NFTItem NFTItem { get; set; }
 
-        public const string IMAGEHOSTPREFIX = "https://infura-ipfs.io/ipfs/";
+        //https://www.reddit.com/r/ipfs/comments/lvwn4o/ipfs_http_gateways_ranked_by_performance/
+        //public const string IMAGEHOSTPREFIX = "https://ipfs.blockfrost.dev/ipfs/";
+        //public const string IMAGEHOSTPREFIX = "https://ipfs.io/ipfs/";
+        //public const string IMAGEHOSTPREFIX = "https://infura-ipfs.io/ipfs/";
+        public const string IMAGEHOSTPREFIX = "https://cloudflare-ipfs.com/ipfs/";
 
 
         public MainWindow(NFTItem item)
@@ -204,16 +208,7 @@ namespace BlockClocksWindows
                 {
                     string uri = IMAGEHOSTPREFIX + clock.ipfshash;
 
-                    // Create a BitmapSource  
-                    BitmapImage bitmap = new BitmapImage();
-                    bitmap.BeginInit();
-                    bitmap.UriSource = new Uri(uri);
-                    bitmap.EndInit();
-
-                    bitmap.DownloadCompleted += Bitmap_DownloadCompleted;
-
-                    Image.Visibility = Visibility.Visible;
-                    Image.Source = bitmap;
+                    getImage(uri);
 
                     processed = true;
 
@@ -230,6 +225,28 @@ namespace BlockClocksWindows
                 bitmap.EndInit();
                 ImagePlaceholder.Source = bitmap;                
             }
+        }
+
+        private void getImage(string uri)
+        {
+            // Create a BitmapSource  
+            BitmapImage bitmap = new BitmapImage();
+            bitmap.BeginInit();
+            bitmap.UriSource = new Uri(uri);            
+            bitmap.EndInit();
+
+            bitmap.DownloadCompleted += Bitmap_DownloadCompleted;
+            bitmap.DownloadFailed += Bitmap_DownloadFailed;
+
+            Image.Visibility = Visibility.Visible;
+            Image.Source = bitmap;
+        }
+
+        private void Bitmap_DownloadFailed(object sender, ExceptionEventArgs e)
+        {
+            var uri = ((System.Net.HttpWebResponse)((System.Net.WebException)e.ErrorException).Response).ResponseUri.AbsoluteUri;
+            getImage(uri);
+            //throw new NotImplementedException();
         }
 
         private void Bitmap_DownloadCompleted(object sender, EventArgs e)
