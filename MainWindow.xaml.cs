@@ -37,7 +37,26 @@ namespace BlockClocksWindows
         //public const string IMAGEHOSTPREFIX = "https://ipfs.blockfrost.dev/ipfs/";
         //public const string IMAGEHOSTPREFIX = "https://ipfs.io/ipfs/";
         //public const string IMAGEHOSTPREFIX = "https://infura-ipfs.io/ipfs/";
-        public const string IMAGEHOSTPREFIX = "https://cloudflare-ipfs.com/ipfs/";
+        //public const string IMAGEHOSTPREFIX = "https://cloudflare-ipfs.com/ipfs/";
+
+        private int prefixcount = 0;
+        private string[] ImageHostPrefixes = {
+            "https://nftstorage.link/ipfs/",
+            "https://gateway.ipfs.io/ipfs/",          
+            "https://ipfs.io/ipfs/",            
+            "https://gateway.ipfs.io/ipfs/",            
+            "https://dweb.link/ipfs/",
+        };
+
+        private string GetNextPrefix()
+        {
+            prefixcount++;
+            if (prefixcount > ImageHostPrefixes.Length - 1)
+            {
+                prefixcount = 0;
+            }
+            return ImageHostPrefixes[prefixcount];
+        }
 
 
         public MainWindow(NFTItem item)
@@ -206,7 +225,7 @@ namespace BlockClocksWindows
             {
                 if (clock.ipfshash != null)
                 {
-                    string uri = IMAGEHOSTPREFIX + clock.ipfshash;
+                    string uri = GetNextPrefix() + clock.ipfshash;
 
                     getImage(uri);
 
@@ -233,8 +252,7 @@ namespace BlockClocksWindows
             BitmapImage bitmap = new BitmapImage();
             bitmap.BeginInit();
             bitmap.UriSource = new Uri(uri);            
-            bitmap.EndInit();
-
+            bitmap.EndInit();            
             bitmap.DownloadCompleted += Bitmap_DownloadCompleted;
             bitmap.DownloadFailed += Bitmap_DownloadFailed;
 
@@ -249,8 +267,45 @@ namespace BlockClocksWindows
 
             if (_retries < 20)
             {
-                var uri = ((System.Net.HttpWebResponse)((System.Net.WebException)e.ErrorException).Response).ResponseUri.AbsoluteUri;
-                getImage(uri);
+                try
+                {
+                    //System.IO.Exception
+                    var ex = e.ErrorException;
+                    var webex = (System.Net.WebException)e.ErrorException;
+                    var response = webex.Response.ResponseUri;
+                    var uri = ((System.Net.HttpWebResponse)((System.Net.WebException)e.ErrorException).Response).ResponseUri.AbsoluteUri;
+
+                    for (int i = 0; i < ImageHostPrefixes.Length; i++)
+                    {
+                        if (uri.StartsWith(ImageHostPrefixes[i]))
+                        {
+                            uri = uri.Substring(ImageHostPrefixes[i].Length);
+                            var newprefixindex = i + 1;
+                            if (newprefixindex > ImageHostPrefixes.Length - 1)
+                            {
+                                newprefixindex = 0;
+                            }
+                            uri = ImageHostPrefixes[newprefixindex] + uri;
+                        }
+                    }
+                    getImage(uri);
+                }
+                catch (Exception)
+                {
+                    BitmapImage bitmap = new BitmapImage();
+                    bitmap.BeginInit();
+                    bitmap.UriSource = new Uri("pack://application:,,/circle-exclamation-solid.png");
+                    bitmap.EndInit();
+                    ImagePlaceholder.Source = bitmap;
+                }                
+            }
+            else
+            {
+                BitmapImage bitmap = new BitmapImage();
+                bitmap.BeginInit();
+                bitmap.UriSource = new Uri("pack://application:,,/circle-exclamation-solid.png");
+                bitmap.EndInit();
+                ImagePlaceholder.Source = bitmap;
             }
             //throw new NotImplementedException();
         }
