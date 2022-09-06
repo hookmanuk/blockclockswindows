@@ -43,8 +43,7 @@ namespace BlockClocksWindows
         private string[] ImageHostPrefixes = {
             "https://nftstorage.link/ipfs/",
             "https://gateway.ipfs.io/ipfs/",          
-            "https://ipfs.io/ipfs/",            
-            "https://gateway.ipfs.io/ipfs/",            
+            "https://ipfs.io/ipfs/",                        
             "https://dweb.link/ipfs/",
         };
 
